@@ -1,0 +1,54 @@
+{
+  "identifier": "9A9AC555-AB41-4FEA-B177-29D894807B31",
+  "nonRenewingSubscriptions": [],
+  "products": [],
+  "settings": {
+    "_applicationInternalID": "",
+    "_developerTeamID": "",
+    "_failTransactionsEnabled": false,
+    "_locale": "en_US",
+    "_storefront": "USA",
+    "_storeKitErrors": []
+  },
+  "subscriptionGroups": [
+    {
+      "id": "trace-studio-pro",
+      "localizations": [
+        {
+          "description": "All of your ideas, on paper.",
+          "displayName": "Trace Studio Pro",
+          "locale": "en_US"
+        }
+      ],
+      "name": "Trace Studio Pro",
+      "subscriptions": [
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "5.99",
+          "familyShareable": false,
+          "groupNumber": 1,
+          "internalID": "weekly-pro",
+          "introductoryOffer": null,
+          "localizations": [
+            {
+              "description": "Full drawing catalog, lessons and more photo projects.",
+              "displayName": "Trace Studio Pro Weekly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "com.karamba555.painter.pro.weekly",
+          "recurringSubscriptionPeriod": "P1W",
+          "referenceName": "Pro Weekly",
+          "subscriptionGroupID": "trace-studio-pro",
+          "type": "RecurringSubscription",
+          "winBackOffers": []
+        }
+      ]
+    }
+  ],
+  "version": {
+    "major": 3,
+    "minor": 0
+  }
+}
