@@ -22,6 +22,7 @@ import SwiftUI
             session.commitConfiguration()
             configured = true
         }
+        message = nil
         let captureSession = session
         queue.async { [weak self] in
             if !captureSession.isRunning { captureSession.startRunning() }

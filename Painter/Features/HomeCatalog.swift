@@ -3,8 +3,6 @@ import SwiftUI
 struct HomeView: View {
     @Environment(StudioLibrary.self) private var library
     @State private var showPaywall = false
-    @State private var showCatalog = false
-    @State private var editInterests = false
     private var lesson: Lesson { Catalog.challenge[library.state.challengeDay - 1] }
     var body: some View {
         StudioPage {
@@ -19,12 +17,12 @@ struct HomeView: View {
                 createCard("Create with AI", subtitle: "An idea becomes art", icon: "spark", color: StudioTheme.sage, route: .ai)
             }
             NavigationLink(value: Route.lesson(lesson.id)) { ChallengeBanner(lesson: lesson) }.buttonStyle(.plain)
-            SectionHeading(title: "Trending", actionTitle: "Explore") { showCatalog = true }
+            sectionLink("Trending", action: "Explore", route: .catalog)
             HStack(spacing: 12) {
                 collectionPreview("Pet Portraits", asset: "pet", topic: .animals)
                 collectionPreview("Botanical calm", asset: "flowers", topic: .flowers)
             }
-            SectionHeading(title: "For You", actionTitle: "Edit interests") { editInterests = true }
+            sectionLink("For You", action: "Edit interests", route: .interests)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
                     ForEach(library.state.interests.isEmpty ? [.flowers, .manga, .relax] : Topic.allCases.filter { library.state.interests.contains($0) }) { topic in
@@ -44,8 +42,13 @@ struct HomeView: View {
             }
         }.toolbar(.hidden, for: .navigationBar)
             .sheet(isPresented: $showPaywall) { PaywallView() }
-            .navigationDestination(isPresented: $showCatalog) { CatalogView() }
-            .navigationDestination(isPresented: $editInterests) { InterestsView(isOnboarding: false) }
+    }
+    private func sectionLink(_ title: String, action: String, route: Route) -> some View {
+        HStack {
+            Text(title).font(StudioTheme.font(21, .bold))
+            Spacer()
+            NavigationLink(action, value: route).font(StudioTheme.font(12, .semibold)).frame(minHeight: 44)
+        }
     }
     private func createCard(_ title: String, subtitle: String, icon: String, color: Color, route: Route) -> some View {
         NavigationLink(value: route) {

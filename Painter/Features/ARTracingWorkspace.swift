@@ -56,24 +56,10 @@ struct ARTracingWorkspace: View {
             }
         }.navigationTitle("AR Trace").navigationBarTitleDisplayMode(.inline).toolbar(.hidden, for: .tabBar)
             .modifier(ActivityTracking(isActive: controller.isPlaced && !controller.needsRealignment && !showFinished))
-            .task {
-                guard library.state.canOpen(drawing, isPro: purchases.isPro) else { error = "This drawing requires Pro."; return }
-                await controller.start()
-                guard !controller.unavailable else { return }
-                guard let source = ImageFiles.source(for: drawing) else { error = "This drawing could not be loaded."; return }
-                do { try controller.prepare(image: drawing.isOutline ? source : ImageFiles.outline(source, detailed: true)) }
-                catch { self.error = error.localizedDescription; return }
-                if !controller.unavailable {
-                    projectID = existingProjectID ?? library.startProject(drawing, isPro: purchases.isPro)
-                    if let settings = library.state.projects.first(where: { $0.id == projectID })?.traceSettings, settings.mode == "ar" {
-                        width = settings.scale; rotation = settings.rotation; opacity = settings.opacity
-                    }
-                    UIApplication.shared.isIdleTimerDisabled = true
-                }
-            }
+            .task { await startSession() }
             .onDisappear { saveSettings(); controller.pause(); UIApplication.shared.isIdleTimerDisabled = false }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active && !showFinished { Task { await controller.start() }; UIApplication.shared.isIdleTimerDisabled = true }
+                if phase == .active && !showFinished { Task { await startSession() } }
                 else { saveSettings(); controller.pause(); UIApplication.shared.isIdleTimerDisabled = false }
             }
             .sheet(isPresented: $showFinished) {
@@ -97,6 +83,21 @@ struct ARTracingWorkspace: View {
                 } catch { self.error = error.localizedDescription }
             }
             .alert("AR Trace", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) { Button("OK") { error = nil } } message: { Text(error ?? "") }
+    }
+    private func startSession() async {
+        guard library.state.canOpen(drawing, isPro: purchases.isPro) else { error = "This drawing requires Pro."; return }
+        await controller.start()
+        guard !Task.isCancelled, !controller.unavailable else { return }
+        if projectID == nil {
+            guard let source = ImageFiles.source(for: drawing) else { error = "This drawing could not be loaded."; return }
+            do { try controller.prepare(image: drawing.isOutline ? source : ImageFiles.outline(source, detailed: true)) }
+            catch { self.error = error.localizedDescription; return }
+            projectID = existingProjectID ?? library.startProject(drawing, isPro: purchases.isPro)
+            if let settings = library.state.projects.first(where: { $0.id == projectID })?.traceSettings, settings.mode == "ar" {
+                width = settings.scale; rotation = settings.rotation; opacity = settings.opacity
+            }
+        }
+        UIApplication.shared.isIdleTimerDisabled = true
     }
     private func finish() { guard let projectID else { return }; saveSettings(); library.finishProject(projectID); controller.pause(); UIApplication.shared.isIdleTimerDisabled = false; showFinished = true }
     private func saveSettings() { if let projectID { library.saveTraceSettings(TraceSettings(mode: "ar", scale: width, opacity: opacity, rotation: rotation), projectID: projectID) } }

@@ -46,6 +46,8 @@ import AVFoundation
         guard !Task.isCancelled else { return }
         guard allowed else { unavailable = true; status = "Allow camera access in Settings to use AR Trace."; return }
         guard let view else { return }
+        unavailable = false
+        if !isPlaced { status = surfaceDetected ? "Tap the paper to place your outline." : "Slowly scan the table around your paper." }
         let configuration = ARWorldTrackingConfiguration()
         configuration.planeDetection = [.horizontal]
         configuration.environmentTexturing = .none
