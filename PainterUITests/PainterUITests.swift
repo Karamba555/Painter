@@ -42,6 +42,31 @@ final class PainterUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Step 2 of 6"].waitForExistence(timeout: 5))
         screenshot("06-Lesson")
     }
+    func testCatalogModesAndPaywall() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--reset-state"]
+        app.launch()
+        app.buttons["skipOnboarding"].tap()
+        app.buttons["Explore"].tap()
+        app.buttons.containing(.staticText, identifier: "Manga").firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Lucky kitten"].waitForExistence(timeout: 5))
+        screenshot("07-Manga")
+        app.buttons.containing(.staticText, identifier: "Lucky kitten").firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["How will you trace?"].waitForExistence(timeout: 5))
+        screenshot("08-Choose-mode")
+        app.buttons["Screen Trace. Trace through thin paper on your screen."].tap()
+        XCTAssertTrue(app.buttons["Lock outline"].waitForExistence(timeout: 5))
+        app.buttons["Lock outline"].tap()
+        XCTAssertTrue(app.buttons["Unlock"].exists)
+        screenshot("09-Screen-trace")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.buttons.containing(.staticText, identifier: "Flower girl").firstMatch.tap()
+        XCTAssertTrue(app.buttons["subscribe"].waitForExistence(timeout: 5))
+        screenshot("10-Paywall")
+        app.buttons["Close paywall"].tap()
+        XCTAssertTrue(app.staticTexts["Lucky kitten"].waitForExistence(timeout: 5))
+    }
     private func screenshot(_ name: String) {
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways

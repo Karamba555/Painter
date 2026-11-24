@@ -7,6 +7,17 @@ struct SavedProject: Codable, Identifiable, Hashable {
     var createdAt: Date
     var isComplete: Bool
     var workPhoto: String?
+    var traceSettings: TraceSettings?
+}
+
+struct TraceSettings: Codable, Hashable {
+    var mode: String = "camera"
+    var scale: Double = 0.8
+    var offsetX: Double = 0
+    var offsetY: Double = 0
+    var opacity: Double = 0.7
+    var rotation: Double = 0
+    var mirrored: Bool = false
 }
 
 struct StudioState: Codable {
@@ -70,6 +81,22 @@ final class StudioLibrary {
             if let workPhoto { state.projects[index].workPhoto = workPhoto }
         }
     }
+    func saveTraceSettings(_ settings: TraceSettings, projectID: UUID) {
+        update { state in
+            guard let index = state.projects.firstIndex(where: { $0.id == projectID }) else { return }
+            state.projects[index].traceSettings = settings
+        }
+    }
+    func renameProject(_ id: UUID, title: String) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        update { state in
+            guard let index = state.projects.firstIndex(where: { $0.id == id }) else { return }
+            let original = state.projects[index].drawing
+            state.projects[index].drawing = Drawing(id: original.id, title: String(trimmed.prefix(80)), asset: original.asset, topic: original.topic, difficulty: original.difficulty, minutes: original.minutes, isFree: original.isFree, localImage: original.localImage, origin: original.origin)
+        }
+    }
+    func removeProject(_ id: UUID) { update { $0.projects.removeAll { $0.id == id } } }
     func recordActivity(seconds: Double, date: Date = .now) {
         guard seconds > 0 else { return }
         let day = ISO8601DateFormatter.string(from: Calendar.current.startOfDay(for: date), timeZone: .current, formatOptions: [.withFullDate])

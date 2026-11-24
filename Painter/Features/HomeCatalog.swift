@@ -115,7 +115,7 @@ struct CollectionView: View {
             DifficultyFilter(selection: $difficulty)
             if drawings.isEmpty { ContentUnavailableView("More drawings soon", systemImage: "pencil.tip.crop.circle", description: Text("Try another difficulty to find your next drawing.")) }
             DrawingGrid(drawings: drawings)
-            Label("Try a free drawing in Camera or Screen Trace. AR preview is included.", systemImage: "checkmark").font(StudioTheme.font(12)).foregroundStyle(StudioTheme.green).studioCard(StudioTheme.sage)
+            Label("Try a free drawing in all 3 tracing modes. AR needs a supported device.", systemImage: "checkmark").font(StudioTheme.font(12)).foregroundStyle(StudioTheme.green).studioCard(StudioTheme.sage)
         }.navigationTitle("Collections")
     }
 }
@@ -156,6 +156,7 @@ struct DrawingCard: View {
 }
 
 struct FavoritesView: View {
+    var isRoot = true
     @Environment(StudioLibrary.self) private var library
     private var drawings: [Drawing] { Catalog.drawings.filter { library.state.favorites.contains($0.id) } }
     var body: some View {
@@ -166,6 +167,6 @@ struct FavoritesView: View {
                 ContentUnavailableView("Make room for inspiration", systemImage: "heart", description: Text("Tap the heart on any drawing to keep it here."))
                 NavigationLink("Explore drawings", value: Route.catalog).buttonStyle(.borderedProminent).frame(maxWidth: .infinity)
             } else { DrawingGrid(drawings: drawings) }
-        }.toolbar(.hidden, for: .navigationBar)
+        }.toolbar(isRoot ? .hidden : .visible, for: .navigationBar)
     }
 }

@@ -24,6 +24,15 @@ final class PurchaseStore {
         }
         isPro = entitled
     }
+    /// Sent only to the configured backend; the server independently verifies it with Apple.
+    func signedEntitlement() async -> String? {
+        for await result in Transaction.currentEntitlements {
+            if case .verified(let transaction) = result,
+               transaction.productID == Self.weeklyProductID,
+               transaction.revocationDate == nil { return result.jwsRepresentation }
+        }
+        return nil
+    }
     func observeTransactions() async {
         for await result in Transaction.updates {
             guard !Task.isCancelled else { return }

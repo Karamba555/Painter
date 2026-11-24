@@ -20,17 +20,20 @@ struct PainterApp: App {
 }
 
 enum Route: Hashable {
-    case catalog, topic(Topic), drawing(Drawing), lesson(String), interests, projects, photo, ai, help
+    case catalog, topic(Topic), drawing(Drawing), lesson(String), interests, projects, project(UUID), favorites, photo, ai, help
 }
 
 struct RootView: View {
     @Environment(StudioLibrary.self) private var library
+    @State private var didPrepare = false
     var body: some View {
         Group {
             if library.state.hasOnboarded { StudioTabs() }
             else { NavigationStack { WelcomeView().studioDestinations() } }
         }
         .onAppear {
+            guard !didPrepare else { return }
+            didPrepare = true
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--reset-state") { library.reset() }
             #endif
@@ -56,6 +59,12 @@ struct StudioTabs: View {
 private struct StudioDestinations: ViewModifier {
     func body(content: Content) -> some View {
         content.navigationDestination(for: Route.self) { route in
+            destination(route).toolbar(.visible, for: .navigationBar)
+        }
+        .toolbarBackground(StudioTheme.paper, for: .navigationBar)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+    @ViewBuilder private func destination(_ route: Route) -> some View {
             switch route {
             case .catalog: CatalogView()
             case .topic(let topic): CollectionView(topic: topic)
@@ -63,13 +72,12 @@ private struct StudioDestinations: ViewModifier {
             case .lesson(let id): LessonAccessView(lesson: Catalog.lesson(id))
             case .interests: InterestsView(isOnboarding: false)
             case .projects: ProjectsView()
+            case .project(let id): ProjectDetailView(projectID: id)
+            case .favorites: FavoritesView(isRoot: false)
             case .photo: PhotoCreationView()
             case .ai: AICreationView()
             case .help: HelpView()
             }
-        }
-        .toolbarBackground(StudioTheme.paper, for: .navigationBar)
-        .navigationBarTitleDisplayMode(.inline)
     }
 }
 extension View { func studioDestinations() -> some View { modifier(StudioDestinations()) } }

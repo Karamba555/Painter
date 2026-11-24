@@ -34,9 +34,24 @@ enum ImageFiles {
         if let path = drawing.localImage { return load(path) }
         return UIImage(named: drawing.asset)
     }
+    /// Converts white paper to transparency so the camera and the hand remain visible.
+    static func transparentOutline(_ image: UIImage) -> UIImage {
+        guard let input = CIImage(image: image) else { return image }
+        let invert = CIFilter.colorInvert(); invert.inputImage = input
+        let blend = CIFilter.blendWithMask()
+        blend.inputImage = CIImage(color: CIColor(red: 0.77, green: 0.31, blue: 0.22)).cropped(to: input.extent)
+        blend.backgroundImage = CIImage(color: .clear).cropped(to: input.extent)
+        blend.maskImage = invert.outputImage
+        guard let output = blend.outputImage, let cgImage = CIContext().createCGImage(output, from: input.extent) else { return image }
+        return UIImage(cgImage: cgImage)
+    }
+    static func exportImage(_ filename: String) -> URL? {
+        let url = directory.appendingPathComponent(filename)
+        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+    }
     static func pdf(for drawing: Drawing) throws -> URL {
         guard let source = source(for: drawing) else { throw ImageError.invalidImage }
-        let image = drawing.isPhoto ? source : outline(source, detailed: true)
+        let image = drawing.isOutline ? source : outline(source, detailed: true)
         let bounds = CGRect(x: 0, y: 0, width: 595, height: 842)
         let data = UIGraphicsPDFRenderer(bounds: bounds).pdfData { context in
             context.beginPage()

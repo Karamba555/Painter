@@ -35,11 +35,11 @@ struct ModeChooserView: View {
                 }.studioCard(padding: 12)
             }
             Text("Watch the phone move: Camera drifts, AR stays aligned.").font(StudioTheme.font(12)).foregroundStyle(StudioTheme.muted)
-            Text("AR is a demonstration in this build.").font(StudioTheme.font(12)).foregroundStyle(StudioTheme.muted)
+            Text("AR uses your table as its anchor. Keep the paper in place.").font(StudioTheme.font(12)).foregroundStyle(StudioTheme.muted)
         }.navigationTitle(drawing.title)
             .sheet(item: $setup) { mode in NavigationStack { ModeSetupView(mode: mode) } }
             .navigationDestination(item: $selected) { mode in
-                if mode == .ar { ModeSetupView(mode: mode) }
+                if mode == .ar { ARTracingWorkspace(drawing: drawing) }
                 else { TracingWorkspace(drawing: drawing, mode: mode) }
             }
     }
@@ -64,12 +64,14 @@ struct ModeSetupView: View {
 struct TracingWorkspace: View {
     let drawing: Drawing
     let mode: TraceMode
+    var existingProjectID: UUID? = nil
     @Environment(StudioLibrary.self) private var library
     @Environment(PurchaseStore.self) private var purchases
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dismiss) private var dismiss
     @StateObject private var camera = CameraController()
     @State private var outline: UIImage?
+    @State private var cameraOutline: UIImage?
     @State private var opacity = 0.7
     @State private var scale: CGFloat = 0.8
     @State private var offset: CGSize = .zero
@@ -82,15 +84,18 @@ struct TracingWorkspace: View {
     @State private var shareURL: URL?
     @State private var error: String?
     @State private var saving = false
+    @State private var showArtworkCamera = false
+    @State private var rotation = 0.0
+    @State private var mirrored = false
     var body: some View {
         VStack(spacing: 0) {
             ZStack {
                 Color.white
                 if mode == .camera { CameraPreview(session: camera.session) }
                 if let outline {
-                    Image(uiImage: outline).resizable().scaledToFit().scaleEffect(scale)
+                    Image(uiImage: mode == .camera ? (cameraOutline ?? outline) : outline).resizable().scaledToFit().scaleEffect(x: mirrored ? -scale : scale, y: scale)
+                        .rotationEffect(.degrees(rotation))
                         .offset(offset).opacity(mode == .screen ? 1 : opacity)
-                        .blendMode(mode == .camera ? .multiply : .normal)
                         .gesture(DragGesture().onChanged { value in
                             guard !locked else { return }
                             offset = CGSize(width: lastOffset.width + value.translation.width, height: lastOffset.height + value.translation.height)
@@ -108,6 +113,12 @@ struct TracingWorkspace: View {
                 if !locked {
                     HStack { Text("Size").frame(width: 55, alignment: .leading); Slider(value: $scale, in: 0.25...1.8).accessibilityLabel("Outline size") }
                     if mode == .camera { HStack { Text("Opacity").frame(width: 55, alignment: .leading); Slider(value: $opacity, in: 0.15...1).accessibilityLabel("Outline opacity") } }
+                    HStack { Text("Rotate").frame(width: 55, alignment: .leading); Slider(value: $rotation, in: -180...180).accessibilityLabel("Outline rotation") }
+                    HStack {
+                        Button { mirrored.toggle() } label: { Label("Flip", systemImage: "arrow.left.and.right.righttriangle.left.righttriangle.right") }
+                        Spacer()
+                        Button("Reset position") { scale = 0.8; offset = .zero; lastOffset = .zero; rotation = 0; mirrored = false }
+                    }.frame(minHeight: 36)
                 }
                 HStack {
                     Button { locked.toggle() } label: { Label(locked ? "Unlock" : "Lock outline", systemImage: locked ? "lock.fill" : "lock.open") }.frame(minHeight: 44)
@@ -125,30 +136,43 @@ struct TracingWorkspace: View {
             .toolbar(.hidden, for: .tabBar)
             .modifier(ActivityTracking())
             .task {
-                projectID = library.startProject(drawing, isPro: purchases.isPro)
+                projectID = existingProjectID ?? library.startProject(drawing, isPro: purchases.isPro)
                 guard projectID != nil else { error = "This drawing requires Pro."; return }
-                if let source = ImageFiles.source(for: drawing) { outline = drawing.isPhoto ? source : ImageFiles.outline(source, detailed: true) }
+                if let settings = library.state.projects.first(where: { $0.id == projectID })?.traceSettings {
+                    scale = settings.scale; opacity = settings.opacity
+                    offset = CGSize(width: settings.offsetX, height: settings.offsetY); lastOffset = offset
+                    rotation = settings.rotation; mirrored = settings.mirrored
+                }
+                if let source = ImageFiles.source(for: drawing) {
+                    let lines = drawing.isOutline ? source : ImageFiles.outline(source, detailed: true)
+                    outline = lines; cameraOutline = ImageFiles.transparentOutline(lines)
+                }
                 else { error = "The drawing file could not be found." }
                 UIApplication.shared.isIdleTimerDisabled = true
                 if mode == .camera { await camera.start() } else { brighten() }
             }
-            .onDisappear { camera.stop(); restoreScreen() }
+            .onDisappear { saveSettings(); camera.stop(); restoreScreen() }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active {
                     UIApplication.shared.isIdleTimerDisabled = true
                     if mode == .camera { Task { await camera.start() } } else { brighten() }
-                } else { camera.stop(); restoreScreen() }
+                } else { saveSettings(); camera.stop(); restoreScreen() }
             }
             .sheet(isPresented: $showSaved) {
                 NavigationStack {
                     StudioPage {
                         Text("Made by you.").studioTitle()
                         Text("Your drawing is saved in My Projects. Add a photo of your paper artwork to keep the finished result.").studioCaption()
-                        PhotosPicker(selection: $workPhoto, matching: .images) { Label("Add a photo of your artwork", systemImage: "photo").frame(maxWidth: .infinity, minHeight: 54).studioCard(StudioTheme.peach) }.disabled(saving)
+                        FinishedArtworkControls(showCamera: $showArtworkCamera, selectedPhoto: $workPhoto).disabled(saving)
                         if saving { ProgressView("Saving your photo…") }
                         StudioButton("Back to my studio") { showSaved = false; dismiss() }.disabled(saving)
                     }.navigationTitle("Drawing saved")
                 }.presentationDetents([.medium, .large])
+                    .fullScreenCover(isPresented: $showArtworkCamera) { ArtworkCamera { image in
+                        guard let projectID else { return }
+                        do { library.finishProject(projectID, workPhoto: try ImageFiles.save(ImageFiles.normalized(image))) }
+                        catch { self.error = error.localizedDescription }
+                    } }
             }
             .task(id: workPhoto) {
                 guard let workPhoto, let projectID else { return }
@@ -162,7 +186,10 @@ struct TracingWorkspace: View {
             .sheet(isPresented: Binding(get: { shareURL != nil }, set: { if !$0 { shareURL = nil } })) { if let shareURL { ShareSheet(items: [shareURL]) } }
             .alert("Trace Studio", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) { Button("OK") { error = nil } } message: { Text(error ?? "") }
     }
-    private func finish() { if let projectID { library.finishProject(projectID); camera.stop(); restoreScreen(); showSaved = true } }
+    private func finish() { if let projectID { saveSettings(); library.finishProject(projectID); camera.stop(); restoreScreen(); showSaved = true } }
+    private func saveSettings() {
+        if let projectID { library.saveTraceSettings(TraceSettings(mode: mode.rawValue, scale: scale, offsetX: offset.width, offsetY: offset.height, opacity: opacity, rotation: rotation, mirrored: mirrored), projectID: projectID) }
+    }
     private func brighten() { if oldBrightness == nil { oldBrightness = UIScreen.main.brightness }; UIScreen.main.brightness = 1 }
     private func restoreScreen() { UIApplication.shared.isIdleTimerDisabled = false; if let oldBrightness { UIScreen.main.brightness = oldBrightness; self.oldBrightness = nil } }
 }

@@ -46,7 +46,9 @@ struct Drawing: Codable, Hashable, Identifiable {
     let minutes: Int
     let isFree: Bool
     var localImage: String? = nil
-    var isPhoto: Bool { localImage != nil }
+    var origin: String? = nil
+    var isPhoto: Bool { localImage != nil && origin != "ai" }
+    var isOutline: Bool { localImage != nil }
 }
 
 struct Lesson: Hashable, Identifiable {
@@ -120,7 +122,9 @@ enum Catalog {
     static func feed(interests: Set<Topic>) -> [Drawing] {
         let topics = interests.isEmpty ? [.flowers, .manga, .relax] : Topic.allCases.filter { interests.contains($0) }
         let preferred = topics.compactMap { topic in drawings.first { $0.topic == topic } }
-        return preferred + drawings.filter { !preferred.contains($0) }
+        let moreFromSelectedTopics = drawings.filter { topics.contains($0.topic) && !preferred.contains($0) }
+        let otherTopics = drawings.filter { !topics.contains($0.topic) }
+        return preferred + moreFromSelectedTopics + otherTopics
     }
 }
 
@@ -145,7 +149,7 @@ enum TraceMode: String, CaseIterable, Identifiable, Hashable {
     var instructions: [String] {
         switch self {
         case .camera: ["Rest your phone flat on a stable glass, with its rear camera clear of the rim.", "Place your paper below the camera. Adjust the outline, then lock it.", "Look at your phone as you draw on the paper. If either moves, align the outline again."]
-        case .ar: ["Place your paper on a well-lit, textured surface.", "The surface anchoring method still needs to be validated on a real device.", "This build includes the demonstration only. Use Camera Trace or Screen Trace to draw now."]
+        case .ar: ["Put your paper on a well-lit table with visible texture around its edges. Slowly scan the table with your phone.", "Tap the paper after a surface is detected. Adjust the size and rotation, then lock the outline.", "The outline is anchored to the table, not to the paper. Keep the paper still. If tracking is lost, stop drawing and realign before continuing."]
         case .screen: ["Place thin paper directly on your phone screen.", "Adjust the drawing size, then lock the controls. The screen will brighten.", "Trace gently with a soft pencil. Keep the paper clean and avoid pressing hard."]
         }
     }

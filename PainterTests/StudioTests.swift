@@ -6,6 +6,7 @@ final class StudioTests: XCTestCase {
         XCTAssertEqual(Array(Catalog.feed(interests: []).prefix(3)).map(\.topic), [.flowers, .manga, .relax])
         XCTAssertEqual(Array(Catalog.feed(interests: [.animals, .portraits]).prefix(2)).map(\.topic), [.animals, .portraits])
         XCTAssertEqual(Set(Catalog.feed(interests: [.animals]).map(\.id)).count, Catalog.drawings.count)
+        XCTAssertTrue(Catalog.feed(interests: [.animals]).prefix(2).allSatisfy { $0.topic == .animals })
     }
     func testEveryTopicAndDifficultyHasFreeContent() {
         for topic in Topic.allCases { XCTAssertTrue(Catalog.drawings.contains { $0.topic == topic && $0.isFree }) }
@@ -55,6 +56,29 @@ final class StudioTests: XCTestCase {
         store.recordActivity(seconds: 45)
         XCTAssertEqual(store.state.activeSeconds, 75)
         XCTAssertEqual(store.state.drawingDays.count, 1)
+    }
+    @MainActor func testProjectSettingsRenameDeleteAndQuotaRemain() throws {
+        let defaults = UserDefaults(suiteName: "test." + UUID().uuidString)!
+        let store = StudioLibrary(defaults: defaults)
+        let id = try XCTUnwrap(store.startProject(photo("saved-photo"), isPro: false))
+        let settings = TraceSettings(mode: "screen", scale: 1.2, offsetX: 12, offsetY: -9, opacity: 0.5, rotation: 25, mirrored: true)
+        store.saveTraceSettings(settings, projectID: id)
+        store.renameProject(id, title: "  My first drawing  ")
+        let restored = StudioLibrary(defaults: defaults)
+        XCTAssertEqual(restored.state.projects[0].traceSettings, settings)
+        XCTAssertEqual(restored.state.projects[0].drawing.title, "My first drawing")
+        restored.removeProject(id)
+        XCTAssertTrue(restored.state.projects.isEmpty)
+        XCTAssertFalse(restored.state.canOpen(photo("another-photo"), isPro: false))
+    }
+    @MainActor func testAIDoesNotConsumeFreePhotoAndRequiresPro() throws {
+        let store = makeStore()
+        let ai = Drawing(id: "generated", title: "AI", asset: "", topic: .manga, difficulty: .easy, minutes: 10, isFree: false, localImage: "ai.jpg", origin: "ai")
+        XCTAssertFalse(ai.isPhoto)
+        XCTAssertTrue(ai.isOutline)
+        XCTAssertNil(store.startProject(ai, isPro: false))
+        XCTAssertNotNil(store.startProject(ai, isPro: true))
+        XCTAssertNil(store.state.freePhotoID)
     }
     @MainActor private func makeStore() -> StudioLibrary { StudioLibrary(defaults: UserDefaults(suiteName: "test." + UUID().uuidString)!) }
     private func photo(_ id: String) -> Drawing { Drawing(id: id, title: id, asset: "", topic: .portraits, difficulty: .easy, minutes: 10, isFree: true, localImage: id + ".jpg") }

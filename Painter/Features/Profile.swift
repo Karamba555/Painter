@@ -31,11 +31,13 @@ struct ProfileView: View {
             } else {
                 HStack(alignment: .top, spacing: 10) {
                     ForEach(Array(library.state.projects.prefix(3))) { project in
-                        NavigationLink(value: Route.drawing(project.drawing)) { ProjectThumbnail(project: project) }.buttonStyle(.plain)
+                        NavigationLink(value: Route.project(project.id)) { ProjectThumbnail(project: project) }.buttonStyle(.plain)
                     }
                 }
             }
             VStack(spacing: 0) {
+                NavigationLink(value: Route.favorites) { settingsRow("Favorites", detail: "\(library.state.favorites.count) saved", icon: "heart") }
+                Divider().padding(.leading, 48)
                 NavigationLink(value: Route.interests) { settingsRow("Drawing interests", detail: "Make your feed your own", icon: "spark") }
                 Divider().padding(.leading, 48)
                 Button { purchases.isPro ? (manageSubscription = true) : (showPaywall = true) } label: { settingsRow(purchases.isPro ? "Manage subscription" : "Get Trace Studio Pro", detail: purchases.isPro ? "Your Pro membership" : "Make room for every idea", icon: "pencil") }
@@ -85,7 +87,7 @@ struct ProjectsView: View {
             Text("Made by you.").studioTitle()
             if library.state.projects.isEmpty { ContentUnavailableView("Your studio is ready", systemImage: "pencil.tip", description: Text("Your drawings will appear here when you start a project.")) }
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
-                ForEach(library.state.projects) { project in NavigationLink(value: Route.drawing(project.drawing)) { ProjectThumbnail(project: project) }.buttonStyle(.plain) }
+                ForEach(library.state.projects) { project in NavigationLink(value: Route.project(project.id)) { ProjectThumbnail(project: project) }.buttonStyle(.plain) }
             }
         }.navigationTitle("My Projects")
     }
