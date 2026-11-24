@@ -67,6 +67,35 @@ final class PainterUITests: XCTestCase {
         app.buttons["Close paywall"].tap()
         XCTAssertTrue(app.staticTexts["Lucky kitten"].waitForExistence(timeout: 5))
     }
+    func testFinishedProjectResumesAfterRelaunch() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--reset-state"]
+        app.launch()
+        app.buttons["skipOnboarding"].tap()
+        app.buttons["Explore"].tap()
+        app.buttons.containing(.staticText, identifier: "Manga").firstMatch.tap()
+        app.buttons.containing(.staticText, identifier: "Lucky kitten").firstMatch.tap()
+        app.buttons["Screen Trace. Trace through thin paper on your screen."].tap()
+        let size = app.sliders["Outline size"]
+        XCTAssertTrue(size.waitForExistence(timeout: 5))
+        size.adjust(toNormalizedSliderPosition: 0.7)
+        let savedSize = size.value as? String
+        app.buttons["Finish"].tap()
+        app.buttons["Save finished drawing"].tap()
+        XCTAssertTrue(app.staticTexts["Made by you."].waitForExistence(timeout: 5))
+        app.terminate()
+        app.launchArguments = []
+        app.launch()
+        app.tabBars.buttons["Profile"].tap()
+        app.buttons["View all"].tap()
+        app.buttons.containing(.staticText, identifier: "Lucky kitten").firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["FINISHED"].waitForExistence(timeout: 5))
+        app.buttons["Continue drawing →"].tap()
+        XCTAssertTrue(app.sliders["Outline size"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.sliders["Outline size"].value as? String, savedSize)
+        XCTAssertTrue(app.navigationBars["Screen Trace"].exists)
+        screenshot("11-Resumed-project")
+    }
     private func screenshot(_ name: String) {
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways

@@ -29,7 +29,7 @@ The project and shared scheme are committed; no package installation or project 
 ## Explicit next milestones
 
 - **AR needs physical-device validation.** Surface anchoring is implemented; stability on ordinary paper under hand occlusion is not yet measured. See `Docs/AR-DEVICE-TEST.md`. The table is the anchor; moving the paper requires realignment.
-- **AI code is implemented; the service is not deployed.** `Backend/` contains an executable OpenAI service with Apple subscription verification, persistent limits, idempotent retries and tests. The iOS client handles generation, preview, quota/errors and tracing. Configure the server secrets and Xcode `TRACE_API_BASE_URL` to enable it. See `Backend/README.md`. No OpenAI key is bundled in the app.
+- **AI is deferred; the service is disabled and not deployed.** Prepared code is retained for a later phase. `Backend/` contains an executable OpenAI service with Apple subscription verification, persistent limits, idempotent retries and tests. The iOS client handles generation, preview, quota/errors and tracing. Configure the server secrets and Xcode `TRACE_API_BASE_URL` to enable it. See `Backend/README.md`. No OpenAI key is bundled in the app.
 - Lesson instructions are initial authored content; the illustrations are full references, not separately drawn art for every step. Expand and review the lesson content before release.
 - Animation polish is deferred as requested. The existing Welcome and three mode videos are bundled locally.
 - Production App Store Connect product, signing team, final app icon, published privacy/support URLs and release metadata still need configuration.
@@ -49,7 +49,7 @@ xcodebuild test -project Painter.xcodeproj -scheme Painter \
   -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO
 ```
 
-Unit tests cover personalization, free-content coverage, photo/AI access, persistence, saved transforms, lesson progression, activity, image/PDF processing and the AI HTTP client. UI tests cover onboarding, tabs, lesson resume, catalog, mode selection, Screen Trace and paywall. Backend tests run separately with `cd Backend && npm ci && npm test`; they do not call paid services.
+Unit tests cover personalization, free-content coverage, photo/AI access, persistence, saved transforms, lesson progression, activity, image/PDF processing and the AI HTTP client. UI tests cover onboarding, tabs, lesson resume, catalog, mode selection, Screen Trace, saved-project resume after relaunch and paywall. Backend tests run separately with `cd Backend && npm ci && npm test`; they do not call paid services.
 
 ## Structure
 

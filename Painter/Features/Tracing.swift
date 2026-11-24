@@ -110,7 +110,7 @@ struct TracingWorkspace: View {
                 }
             }.clipped().frame(maxWidth: .infinity, maxHeight: .infinity)
             VStack(spacing: 10) {
-                if !locked {
+                VStack(spacing: 10) {
                     HStack { Text("Size").frame(width: 55, alignment: .leading); Slider(value: $scale, in: 0.25...1.8).accessibilityLabel("Outline size") }
                     if mode == .camera { HStack { Text("Opacity").frame(width: 55, alignment: .leading); Slider(value: $opacity, in: 0.15...1).accessibilityLabel("Outline opacity") } }
                     HStack { Text("Rotate").frame(width: 55, alignment: .leading); Slider(value: $rotation, in: -180...180).accessibilityLabel("Outline rotation") }
@@ -120,6 +120,9 @@ struct TracingWorkspace: View {
                         Button("Reset position") { scale = 0.8; offset = .zero; lastOffset = .zero; rotation = 0; mirrored = false }
                     }.frame(minHeight: 36)
                 }
+                .opacity(locked ? 0 : 1)
+                .allowsHitTesting(!locked)
+                .accessibilityHidden(locked)
                 HStack {
                     Button { locked.toggle() } label: { Label(locked ? "Unlock" : "Lock outline", systemImage: locked ? "lock.fill" : "lock.open") }.frame(minHeight: 44)
                     Spacer()
@@ -138,7 +141,7 @@ struct TracingWorkspace: View {
             .task {
                 projectID = existingProjectID ?? library.startProject(drawing, isPro: purchases.isPro)
                 guard projectID != nil else { error = "This drawing requires Pro."; return }
-                if let settings = library.state.projects.first(where: { $0.id == projectID })?.traceSettings {
+                if let settings = library.state.projects.first(where: { $0.id == projectID })?.traceSettings, settings.mode == mode.rawValue {
                     scale = settings.scale; opacity = settings.opacity
                     offset = CGSize(width: settings.offsetX, height: settings.offsetY); lastOffset = offset
                     rotation = settings.rotation; mirrored = settings.mirrored
@@ -153,7 +156,7 @@ struct TracingWorkspace: View {
             }
             .onDisappear { saveSettings(); camera.stop(); restoreScreen() }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active {
+                if phase == .active && !showSaved {
                     UIApplication.shared.isIdleTimerDisabled = true
                     if mode == .camera { Task { await camera.start() } } else { brighten() }
                 } else { saveSettings(); camera.stop(); restoreScreen() }

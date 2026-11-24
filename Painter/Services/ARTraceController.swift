@@ -43,6 +43,7 @@ import AVFoundation
         }
         var allowed = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
         if !allowed { allowed = await AVCaptureDevice.requestAccess(for: .video) }
+        guard !Task.isCancelled else { return }
         guard allowed else { unavailable = true; status = "Allow camera access in Settings to use AR Trace."; return }
         guard let view else { return }
         let configuration = ARWorldTrackingConfiguration()
