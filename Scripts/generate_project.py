@@ -53,7 +53,7 @@ for target,product in zip(['Painter','PainterTests','PainterUITests'],products):
     for config in ['Debug','Release']:
         settings={'PRODUCT_NAME':'$(TARGET_NAME)','PRODUCT_BUNDLE_IDENTIFIER':'com.karamba555.painter'+('' if target=='Painter' else '.'+target.lower()),'SWIFT_VERSION':'5.0','IPHONEOS_DEPLOYMENT_TARGET':'17.0','TARGETED_DEVICE_FAMILY':'1,2','CODE_SIGN_STYLE':'Automatic','CURRENT_PROJECT_VERSION':'1','MARKETING_VERSION':'0.1.0','LD_RUNPATH_SEARCH_PATHS':['$(inherited)','@executable_path/Frameworks'],'GENERATE_INFOPLIST_FILE':'YES' if target!='Painter' else 'NO'}
         if target=='Painter':
-            settings.update(INFOPLIST_FILE='Painter/Info.plist',ENABLE_PREVIEWS='YES',SUPPORTS_MACCATALYST='NO')
+            settings.update(INFOPLIST_FILE='Painter/Info.plist',ENABLE_PREVIEWS='YES',SUPPORTS_MACCATALYST='NO',TRACE_API_BASE_URL='')
         elif target=='PainterTests':
             settings.update(TEST_HOST='$(BUILT_PRODUCTS_DIR)/Painter.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Painter',BUNDLE_LOADER='$(TEST_HOST)')
         else:

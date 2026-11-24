@@ -56,18 +56,63 @@ struct PhotoCreationView: View {
 }
 
 struct AICreationView: View {
+    @Environment(PurchaseStore.self) private var purchases
     @State private var prompt = ""
+    @State private var detailed = false
+    @State private var generating = false
+    @State private var image: UIImage?
+    @State private var requestID = UUID()
+    @State private var remaining: Int?
+    @State private var limit: Int?
+    @State private var error: String?
+    @State private var showPaywall = false
+    @State private var drawing: Drawing?
     var body: some View {
         StudioPage {
             StudioIcon(name: "spark", size: 34).foregroundStyle(StudioTheme.green)
             Text("Imagine your next drawing.").studioTitle()
             Text("Describe a subject and a style for your outline.").studioCaption()
-            TextField("A sleepy kitten among wildflowers…", text: $prompt, axis: .vertical).lineLimit(4...7).padding(18).background(.white, in: RoundedRectangle(cornerRadius: 20))
+            TextField("A sleepy kitten among wildflowers…", text: $prompt, axis: .vertical).lineLimit(4...7).padding(18).background(.white, in: RoundedRectangle(cornerRadius: 20)).disabled(generating)
+            Picker("Line detail", selection: $detailed) { Text("Simple").tag(false); Text("Detailed").tag(true) }.pickerStyle(.segmented).disabled(generating)
             Text("TRY AN IDEA").font(StudioTheme.font(11, .bold)).foregroundStyle(StudioTheme.green)
-            ForEach(["A kitten with a tiny flower crown", "A cozy cottage in a wildflower garden", "A manga character with round glasses"], id: \.self) { idea in Button(idea) { prompt = idea }.font(StudioTheme.font(14)).frame(maxWidth: .infinity, alignment: .leading).studioCard(StudioTheme.sage) }
-            Label("AI creation is coming soon", systemImage: "sparkles").font(StudioTheme.font(17, .bold))
-            Text("The generation service is not connected in this build. You can start from a photo or choose a ready-to-draw template today.").studioCaption()
-            NavigationLink("Explore templates →", value: Route.catalog).font(StudioTheme.font(16, .bold)).frame(minHeight: 44)
+            ForEach(["A kitten with a tiny flower crown", "A cozy cottage in a wildflower garden", "A manga character with round glasses"], id: \.self) { idea in Button(idea) { prompt = idea }.font(StudioTheme.font(14)).frame(maxWidth: .infinity, alignment: .leading).studioCard(StudioTheme.sage).disabled(generating) }
+            if let image {
+                Image(uiImage: image).resizable().scaledToFit().frame(maxWidth: .infinity).clipShape(RoundedRectangle(cornerRadius: 22))
+                StudioButton("Trace this drawing →") { useImage(image) }
+            }
+            if AIConfiguration.baseURL != nil {
+                StudioButton(generating ? "Creating your drawing…" : image == nil ? "Create my drawing ✦" : "Create another version ✦", color: StudioTheme.green, isBusy: generating) { Task { await generate() } }
+                    .disabled(prompt.trimmingCharacters(in: .whitespacesAndNewlines).count < 3 || prompt.count > 1000)
+                if let remaining, let limit { Text("\(remaining) of \(limit) generations available in your 7-day allowance.").font(StudioTheme.font(12)).foregroundStyle(StudioTheme.muted) }
+                Text("Your description is sent to OpenAI to create your drawing. Your photos stay on this device.").font(StudioTheme.font(12)).foregroundStyle(StudioTheme.muted)
+            } else {
+                Label("AI service isn’t connected yet", systemImage: "sparkles").font(StudioTheme.font(17, .bold))
+                Text("You can use a photo or start from a ready-to-draw template while AI creation is being connected.").studioCaption()
+                NavigationLink("Explore templates →", value: Route.catalog).font(StudioTheme.font(16, .bold)).frame(minHeight: 44)
+            }
+            if let error { Text(error).font(StudioTheme.font(13)).foregroundStyle(StudioTheme.coral) }
         }.navigationTitle("Create with AI")
+            .onChange(of: prompt) { _, _ in requestID = UUID(); image = nil; error = nil }
+            .onChange(of: detailed) { _, _ in requestID = UUID(); image = nil; error = nil }
+            .sheet(isPresented: $showPaywall) { PaywallView() }
+            .navigationDestination(item: $drawing) { DrawingAccessView(drawing: $0) }
+    }
+    private func generate() async {
+        guard purchases.isPro else { showPaywall = true; return }
+        guard let url = AIConfiguration.baseURL else { return }
+        generating = true; error = nil; defer { generating = false }
+        guard let transaction = await purchases.signedEntitlement() else { error = "Restore your Pro purchase, then try again."; return }
+        do {
+            let result = try await AIClient(baseURL: url).generate(prompt: prompt.trimmingCharacters(in: .whitespacesAndNewlines), detailed: detailed, requestID: requestID, signedTransaction: transaction)
+            guard let data = Data(base64Encoded: result.imageBase64), let generated = UIImage(data: data) else { throw ImageFiles.ImageError.invalidImage }
+            image = ImageFiles.normalized(generated)
+            remaining = result.remaining; limit = result.limit
+            requestID = UUID()
+        } catch { self.error = error.localizedDescription }
+    }
+    private func useImage(_ image: UIImage) {
+        do {
+            drawing = Drawing(id: UUID().uuidString, title: String(prompt.prefix(60)), asset: "", topic: .manga, difficulty: detailed ? .medium : .easy, minutes: 15, isFree: false, localImage: try ImageFiles.save(image), origin: "ai")
+        } catch { self.error = error.localizedDescription }
     }
 }

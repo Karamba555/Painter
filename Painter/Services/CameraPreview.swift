@@ -1,5 +1,5 @@
 import SwiftUI
-import AVFoundation
+@preconcurrency import AVFoundation
 
 @MainActor final class CameraController: ObservableObject {
     let session = AVCaptureSession()
@@ -41,4 +41,8 @@ struct CameraPreview: UIViewRepresentable {
 final class CameraSurface: UIView {
     override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
     var preview: AVCaptureVideoPreviewLayer { layer as! AVCaptureVideoPreviewLayer }
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        if let connection = preview.connection, connection.isVideoRotationAngleSupported(90) { connection.videoRotationAngle = 90 }
+    }
 }

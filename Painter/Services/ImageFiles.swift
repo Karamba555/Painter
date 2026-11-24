@@ -49,6 +49,10 @@ enum ImageFiles {
         let url = directory.appendingPathComponent(filename)
         return FileManager.default.fileExists(atPath: url.path) ? url : nil
     }
+    static func remove(_ filename: String) throws {
+        let url = directory.appendingPathComponent(filename)
+        if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
+    }
     static func pdf(for drawing: Drawing) throws -> URL {
         guard let source = source(for: drawing) else { throw ImageError.invalidImage }
         let image = drawing.isOutline ? source : outline(source, detailed: true)

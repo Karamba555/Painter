@@ -23,10 +23,11 @@ struct PaywallView: View {
             Text("Your next favorite drawing starts here.").studioCaption()
             VStack(alignment: .leading, spacing: 12) {
                 benefit("Turn more of your photos into drawings")
+                if AIConfiguration.baseURL != nil { benefit("Create with AI · generation limits apply") }
                 benefit("Every template. Every lesson.")
                 benefit("Save your art & export printable PDFs")
             }
-            Text("AI creation is coming in a later build.").font(StudioTheme.font(12)).foregroundStyle(StudioTheme.muted)
+            if AIConfiguration.baseURL == nil { Text("AI creation will be available when the service is connected.").font(StudioTheme.font(12)).foregroundStyle(StudioTheme.muted) }
             VStack(alignment: .leading, spacing: 6) {
                 HStack(alignment: .firstTextBaseline) { Text(purchases.price).font(StudioTheme.font(32, .bold)); Text("/ week").studioCaption() }
                 Text("Weekly subscription · Cancel anytime").font(StudioTheme.font(12)).foregroundStyle(StudioTheme.muted)
@@ -59,6 +60,7 @@ struct PolicyView: View {
                 } else {
                     Section("Data on your device") { Text("Your interests, favorites, lesson progress, active drawing time, imported images and projects are stored locally on this device. This build does not upload your photos or use analytics or advertising SDKs.") }
                     Section("Camera & photos") { Text("Camera frames are used for the live tracing preview and are not uploaded. The photo picker shares only images you select. Exporting uses the iOS share sheet.") }
+                    Section("AI creation") { Text("When an AI service is configured and you request a drawing, your text description is sent to our backend and OpenAI. Your subscription transaction is verified with Apple. The backend keeps request identifiers, a hashed subscription identifier, usage counts and generated images for up to 30 days to enforce limits and safely retry requests. Imported photos are not sent to the AI service.") }
                     Section("Purchases") { Text("Apple processes purchases. This app checks verified StoreKit transactions to determine access to Pro features.") }
                     Section("Before release") { Text("A published privacy policy and support contact must be configured before this app is released to customers.") }
                 }

@@ -36,7 +36,7 @@ import AVFoundation
         imageAspect = Float(image.size.width / image.size.height)
         material.color = .init(tint: .white, texture: .init(texture!))
         material.blending = .transparent(opacity: .init(floatLiteral: 0.8))
-        material.faceCulling = .none
+        if #available(iOS 18.0, *) { material.faceCulling = .none }
     }
     func start() async {
         guard ARWorldTrackingConfiguration.isSupported else {
@@ -78,7 +78,7 @@ import AVFoundation
         resetPlacement()
         let anchor = ARAnchor(name: "trace-outline", transform: result.worldTransform)
         view.session.add(anchor: anchor)
-        let entity = AnchorEntity(anchor: anchor)
+        let entity = AnchorEntity(anchor)
         let plane = ModelEntity(mesh: .generatePlane(width: 0.18, depth: 0.18 / imageAspect), materials: [material])
         plane.position.y = 0.001
         entity.addChild(plane)

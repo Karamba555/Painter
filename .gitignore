@@ -5,3 +5,9 @@ xcuserdata/
 *.xcresult/
 build/
 .build/
+node_modules/
+.env
+.env.local
+*.p8
+*.sqlite*
+Backend/data/

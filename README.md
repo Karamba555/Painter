@@ -19,6 +19,8 @@ The project and shared scheme are committed; no package installation or project 
 - Three-mode chooser and setup instructions using the current demonstration loops.
 - Camera Trace: live rear camera, adjustable outline size/position/opacity and a lock control. Requires a physical iPhone/iPad camera.
 - Screen Trace: bright screen, adjustable outline, lock, and brightness restoration on exit/background.
+- AR Trace: RealityKit rendering, detected-table raycast placement, adjustable width/rotation/opacity, lock and explicit recovery when tracking becomes unreliable.
+- Saved tracing transforms, project detail, rename/delete, direct camera capture of finished artwork and image sharing.
 - Photo import using PhotosPicker, simple/detailed Core Image outlines, first-photo-project allowance, saved projects, finished artwork photo import and PDF sharing.
 - Profile with actual progress, active-session time, achievements, projects, interests and subscription controls.
 - Custom weekly paywall, StoreKit 2 products/verified entitlements, transaction updates, restore, pending/cancel/error states.
@@ -26,11 +28,10 @@ The project and shared scheme are committed; no package installation or project 
 
 ## Explicit next milestones
 
-- **AR Trace is a demonstration only.** Validate anchoring on ordinary paper and partial hand occlusion before adding an AR implementation. No fake surface tracking is presented as functional.
-- **AI creation is a UI preview only.** No provider, API keys, generation quota or backend has been invented. The paywall does not sell AI as a currently available feature.
+- **AR needs physical-device validation.** Surface anchoring is implemented; stability on ordinary paper under hand occlusion is not yet measured. See `Docs/AR-DEVICE-TEST.md`. The table is the anchor; moving the paper requires realignment.
+- **AI code is implemented; the service is not deployed.** `Backend/` contains an executable OpenAI service with Apple subscription verification, persistent limits, idempotent retries and tests. The iOS client handles generation, preview, quota/errors and tracing. Configure the server secrets and Xcode `TRACE_API_BASE_URL` to enable it. See `Backend/README.md`. No OpenAI key is bundled in the app.
 - Lesson instructions are initial authored content; the illustrations are full references, not separately drawn art for every step. Expand and review the lesson content before release.
 - Animation polish is deferred as requested. The existing Welcome and three mode videos are bundled locally.
-- Artwork photos can be imported from Photos; direct capture of the finished work is a later addition.
 - Production App Store Connect product, signing team, final app icon, published privacy/support URLs and release metadata still need configuration.
 
 ## Subscription testing
@@ -48,7 +49,7 @@ xcodebuild test -project Painter.xcodeproj -scheme Painter \
   -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO
 ```
 
-Unit tests cover topic personalization, free-content coverage, free-photo gating/resume, persistence, lesson progression and activity accounting. UI tests cover onboarding, tabs and lesson resume after relaunch.
+Unit tests cover personalization, free-content coverage, photo/AI access, persistence, saved transforms, lesson progression, activity, image/PDF processing and the AI HTTP client. UI tests cover onboarding, tabs, lesson resume, catalog, mode selection, Screen Trace and paywall. Backend tests run separately with `cd Backend && npm ci && npm test`; they do not call paid services.
 
 ## Structure
 
@@ -59,6 +60,6 @@ Unit tests cover topic personalization, free-content coverage, free-photo gating
 - `Painter/Services`: image processing/files/PDF, camera and StoreKit.
 - `Painter/Resources`: Figma artwork, SVG icons, videos, fonts, privacy manifest and StoreKit test configuration.
 
-User data stays on the device. There are no analytics, advertising SDKs or photo uploads. Deleting the app deletes its local projects; exported PDFs remain wherever the user saved them.
+Photos and projects stay on the device. There are no analytics, advertising SDKs or photo uploads. When AI is configured and requested, the text prompt is sent through the backend to OpenAI, and the signed subscription is verified with Apple. The server keeps hashed quota identifiers and generated results for safe retries. Deleting the app deletes local projects; exported files remain wherever the user saved them.
 
 Design source: [Trace Studio in Figma](https://www.figma.com/design/daGETE9rktlcfIzQGv0j2x). Artwork and icon exports come from that project. DM Sans is bundled under the SIL Open Font License; see `Painter/Resources/Fonts/OFL.txt`.

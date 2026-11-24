@@ -42,7 +42,7 @@ struct ProjectDetailView: View {
                 Button("Cancel", role: .cancel) {}
             }
             .confirmationDialog("Delete this project?", isPresented: $deleteConfirmation, titleVisibility: .visible) {
-                Button("Delete project", role: .destructive) { library.removeProject(projectID); dismiss() }
+                Button("Delete project", role: .destructive) { deleteProject() }
             } message: { Text("The project will be removed from Your Studio. Export your artwork first if you want to keep it.") }
             .fullScreenCover(isPresented: $showCamera) { ArtworkCamera { image in save(image) } }
             .task(id: selectedPhoto) {
@@ -58,6 +58,14 @@ struct ProjectDetailView: View {
     private func save(_ image: UIImage) {
         do { library.finishProject(projectID, workPhoto: try ImageFiles.save(ImageFiles.normalized(image))) }
         catch { self.error = error.localizedDescription }
+    }
+    private func deleteProject() {
+        guard let project else { return }
+        let otherFiles = Set(library.state.projects.filter { $0.id != projectID }.flatMap { [$0.drawing.localImage, $0.workPhoto].compactMap { $0 } })
+        do {
+            for filename in Set([project.drawing.localImage, project.workPhoto].compactMap { $0 }) where !otherFiles.contains(filename) { try ImageFiles.remove(filename) }
+            library.removeProject(projectID); dismiss()
+        } catch { self.error = "The project files could not be removed. Please try again." }
     }
 }
 
