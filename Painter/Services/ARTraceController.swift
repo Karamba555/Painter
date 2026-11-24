@@ -13,7 +13,6 @@ import AVFoundation
     @Published var locked = false
     private weak var view: ARView?
     private var anchorEntity: AnchorEntity?
-    private var arAnchor: ARAnchor?
     private var model: ModelEntity?
     private var texture: TextureResource?
     private var imageAspect: Float = 1
@@ -58,8 +57,7 @@ import AVFoundation
     }
     func resetPlacement() {
         if let anchorEntity { view?.scene.removeAnchor(anchorEntity) }
-        if let arAnchor { view?.session.remove(anchor: arAnchor) }
-        anchorEntity = nil; arAnchor = nil; model = nil
+        anchorEntity = nil; model = nil
         isPlaced = false; locked = false; needsRealignment = false
         status = surfaceDetected ? "Tap the paper to place your outline." : "Slowly scan the table around your paper."
     }
@@ -76,14 +74,12 @@ import AVFoundation
             status = "No surface here yet. Scan the textured area around your paper, then tap again."; return
         }
         resetPlacement()
-        let anchor = ARAnchor(name: "trace-outline", transform: result.worldTransform)
-        view.session.add(anchor: anchor)
-        let entity = AnchorEntity(anchor)
+        let entity = AnchorEntity(world: result.worldTransform)
         let plane = ModelEntity(mesh: .generatePlane(width: 0.18, depth: 0.18 / imageAspect), materials: [material])
         plane.position.y = 0.001
         entity.addChild(plane)
         view.scene.addAnchor(entity)
-        arAnchor = anchor; anchorEntity = entity; model = plane
+        anchorEntity = entity; model = plane
         isPlaced = true
         status = "Outline placed. Adjust it, then lock. Keep the paper still."
     }

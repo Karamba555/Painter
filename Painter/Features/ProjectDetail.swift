@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import AVFoundation
 
 struct ProjectDetailView: View {
     let projectID: UUID
@@ -72,13 +73,21 @@ struct ProjectDetailView: View {
 struct FinishedArtworkControls: View {
     @Binding var showCamera: Bool
     @Binding var selectedPhoto: PhotosPickerItem?
+    @State private var permissionDenied = false
     var body: some View {
         VStack(spacing: 10) {
             if UIImagePickerController.isSourceTypeAvailable(.camera) {
-                Button { showCamera = true } label: { Label("Photograph your artwork", systemImage: "camera").frame(maxWidth: .infinity, minHeight: 48).studioCard(StudioTheme.peach, padding: 8) }
+                Button { Task {
+                    var allowed = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
+                    if !allowed { allowed = await AVCaptureDevice.requestAccess(for: .video) }
+                    if allowed { showCamera = true } else { permissionDenied = true }
+                } } label: { Label("Photograph your artwork", systemImage: "camera").frame(maxWidth: .infinity, minHeight: 48).studioCard(StudioTheme.peach, padding: 8) }
             }
             PhotosPicker(selection: $selectedPhoto, matching: .images) { Label("Choose artwork photo", systemImage: "photo").frame(maxWidth: .infinity, minHeight: 44) }
-        }
+        }.alert("Allow camera access", isPresented: $permissionDenied) {
+            if let url = URL(string: UIApplication.openSettingsURLString) { Button("Open Settings") { UIApplication.shared.open(url) } }
+            Button("Cancel", role: .cancel) {}
+        } message: { Text("Enable the camera in Settings, or choose a photo from your library.") }
     }
 }
 
