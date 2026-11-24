@@ -73,10 +73,10 @@ struct ProjectThumbnail: View {
             Group {
                 if let photo = project.workPhoto, let image = ImageFiles.load(photo) { Image(uiImage: image).resizable().scaledToFill() }
                 else { Artwork(drawing: project.drawing) }
-            }.frame(height: 110).clipped().clipShape(RoundedRectangle(cornerRadius: 18))
+            }.frame(height: 110).clipped().contentShape(Rectangle()).clipShape(RoundedRectangle(cornerRadius: 18))
             Text(project.drawing.title).font(StudioTheme.font(11))
             Text(project.isComplete ? "Finished" : "In progress").font(StudioTheme.font(10)).foregroundStyle(StudioTheme.muted)
-        }.frame(maxWidth: .infinity, alignment: .leading)
+        }.frame(maxWidth: .infinity, alignment: .leading).contentShape(Rectangle())
     }
 }
 

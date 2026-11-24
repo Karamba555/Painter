@@ -88,6 +88,7 @@ final class PainterUITests: XCTestCase {
         app.launch()
         app.tabBars.buttons["Profile"].tap()
         app.buttons["View all"].tap()
+        XCTAssertTrue(app.navigationBars["My Projects"].waitForExistence(timeout: 5))
         app.buttons.containing(.staticText, identifier: "Lucky kitten").firstMatch.tap()
         XCTAssertTrue(app.staticTexts["FINISHED"].waitForExistence(timeout: 5))
         app.buttons["Continue drawing →"].tap()
