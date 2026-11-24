@@ -21,7 +21,7 @@ enum ImageFiles {
         let resized = normalized(image, maxDimension: 1200)
         guard let input = CIImage(image: resized) else { return resized }
         let edges = CIFilter.lineOverlay()
-        edges.inputImage = input
+        edges.inputImage = input.clampedToExtent()
         edges.nrNoiseLevel = detailed ? 0.02 : 0.08
         edges.nrSharpness = 0.7
         edges.edgeIntensity = detailed ? 1.2 : 0.8
@@ -32,7 +32,14 @@ enum ImageFiles {
     }
     static func source(for drawing: Drawing) -> UIImage? {
         if let path = drawing.localImage { return load(path) }
-        return UIImage(named: drawing.asset)
+        guard let image = UIImage(named: drawing.asset) else { return nil }
+        guard drawing.origin == "template-outline", let input = CIImage(image: image) else { return image }
+        // Preserve the existing clean strokes; remove the warm preview paper tint.
+        let monochrome = CIFilter.colorControls()
+        monochrome.inputImage = input; monochrome.saturation = 0
+        monochrome.contrast = 1.15; monochrome.brightness = 0.05
+        guard let result = monochrome.outputImage, let cg = CIContext().createCGImage(result, from: input.extent) else { return image }
+        return UIImage(cgImage: cg)
     }
     /// Converts white paper to transparency so the camera and the hand remain visible.
     static func transparentOutline(_ image: UIImage) -> UIImage {

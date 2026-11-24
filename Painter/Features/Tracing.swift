@@ -108,7 +108,9 @@ struct TracingWorkspace: View {
                         if let url = URL(string: UIApplication.openSettingsURLString) { Link("Open Settings", destination: url) }
                     }.padding(24).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20)).padding(24)
                 }
-            }.clipped().frame(maxWidth: .infinity, maxHeight: .infinity)
+            }.frame(maxWidth: .infinity, maxHeight: .infinity)
+                .clipped()
+                .contentShape(Rectangle())
             VStack(spacing: 10) {
                 VStack(spacing: 10) {
                     HStack { Text("Size").frame(width: 55, alignment: .leading); Slider(value: $scale, in: 0.25...1.8).accessibilityLabel("Outline size") }

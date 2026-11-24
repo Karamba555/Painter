@@ -48,7 +48,7 @@ struct Drawing: Codable, Hashable, Identifiable {
     var localImage: String? = nil
     var origin: String? = nil
     var isPhoto: Bool { localImage != nil && origin != "ai" }
-    var isOutline: Bool { localImage != nil }
+    var isOutline: Bool { localImage != nil || origin == "template-outline" }
 }
 
 struct Lesson: Hashable, Identifiable {
@@ -64,7 +64,7 @@ struct Lesson: Hashable, Identifiable {
 
 enum Catalog {
     static let drawings: [Drawing] = [
-        .init(id: "kitten", title: "Lucky kitten", asset: "kitten", topic: .manga, difficulty: .easy, minutes: 10, isFree: true),
+        .init(id: "kitten", title: "Lucky kitten", asset: "kitten", topic: .manga, difficulty: .easy, minutes: 10, isFree: true, origin: "template-outline"),
         .init(id: "flower-girl", title: "Flower girl", asset: "flower-girl", topic: .manga, difficulty: .medium, minutes: 20, isFree: false),
         .init(id: "hoodie", title: "Sunday hoodie", asset: "hoodie", topic: .manga, difficulty: .medium, minutes: 25, isFree: false),
         .init(id: "moon", title: "Moon keeper", asset: "moon", topic: .manga, difficulty: .hard, minutes: 30, isFree: false),
