@@ -80,8 +80,8 @@ final class PainterUITests: XCTestCase {
         XCTAssertTrue(size.waitForExistence(timeout: 5))
         size.adjust(toNormalizedSliderPosition: 0.7)
         let savedSize = size.value as? String
-        app.buttons["Finish"].tap()
-        app.buttons["Save finished drawing"].tap()
+        XCTAssertTrue(app.buttons["finishDrawing"].isHittable)
+        app.buttons["finishDrawing"].tap()
         XCTAssertTrue(app.staticTexts["Made by you."].waitForExistence(timeout: 5))
         app.terminate()
         app.launchArguments = []

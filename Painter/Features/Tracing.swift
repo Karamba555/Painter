@@ -128,12 +128,17 @@ struct TracingWorkspace: View {
                 HStack {
                     Button { locked.toggle() } label: { Label(locked ? "Unlock" : "Lock outline", systemImage: locked ? "lock.fill" : "lock.open") }.frame(minHeight: 44)
                     Spacer()
-                    Menu {
-                        Button("Save finished drawing", systemImage: "checkmark") { finish() }
-                        Button("Export outline PDF", systemImage: "square.and.arrow.up") {
-                            do { shareURL = try ImageFiles.pdf(for: drawing) } catch { self.error = error.localizedDescription }
-                        }
-                    } label: { Text("Finish").font(StudioTheme.font(16, .bold)).frame(minHeight: 44) }.disabled(projectID == nil)
+                    Button {
+                        do { shareURL = try ImageFiles.pdf(for: drawing) } catch { self.error = error.localizedDescription }
+                    } label: {
+                        Image(systemName: "square.and.arrow.up").frame(width: 44, height: 44)
+                    }.accessibilityLabel("Export outline PDF")
+                    Button("Finish") { finish() }
+                        .font(StudioTheme.font(16, .bold))
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .accessibilityIdentifier("finishDrawing")
+                        .disabled(projectID == nil)
                 }
                 Text(locked ? "Outline locked. Draw gently on your paper." : "Drag to position. Adjust the size, then lock the outline.").font(StudioTheme.font(11)).foregroundStyle(StudioTheme.muted)
             }.font(StudioTheme.font(13)).padding(.horizontal, 24).padding(.vertical, 12).background(StudioTheme.paper)
