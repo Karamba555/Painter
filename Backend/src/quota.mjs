@@ -18,11 +18,15 @@ export class QuotaStore {
       CREATE TABLE IF NOT EXISTS attempts (owner TEXT NOT NULL, created INTEGER NOT NULL);
       CREATE INDEX IF NOT EXISTS attempts_created ON attempts(created);`);
     // Keep replay results for 30 days. Retain ambiguous pending jobs for the quota window.
-    const cutoff = now() - 30 * 86400000;
+    this.purgeExpired();
+  }
+  purgeExpired() {
+    const cutoff = this.now() - 30 * 86400000;
     this.db.prepare('DELETE FROM generations WHERE created < ?').run(cutoff);
     this.db.prepare('DELETE FROM attempts WHERE created < ?').run(cutoff);
   }
   reserve(id, owner, prompt, detail) {
+    this.purgeExpired();
     const timestamp = this.now();
     const fingerprint = createHash('sha256').update(JSON.stringify({ prompt, detail })).digest('hex');
     this.db.exec('BEGIN IMMEDIATE');

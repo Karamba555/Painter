@@ -4,11 +4,13 @@ import SwiftUI
 @MainActor final class CameraController: ObservableObject {
     let session = AVCaptureSession()
     @Published var message: String?
+    @Published private(set) var isReady = false
     private let queue = DispatchQueue(label: "studio.camera")
     private var configured = false
     func start() async {
         var permitted = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
         if !permitted { permitted = await requestAccess() }
+        guard !Task.isCancelled else { return }
         guard permitted else { message = "Allow camera access in Settings to use Camera Trace."; return }
         if !configured {
             guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
@@ -21,10 +23,21 @@ import SwiftUI
             configured = true
         }
         let captureSession = session
-        queue.async { if !captureSession.isRunning { captureSession.startRunning() } }
+        queue.async { [weak self] in
+            if !captureSession.isRunning { captureSession.startRunning() }
+            let ready = captureSession.isRunning
+            Task { @MainActor [weak self] in self?.isReady = ready }
+        }
     }
     private func requestAccess() async -> Bool { await AVCaptureDevice.requestAccess(for: .video) }
-    func stop() { let captureSession = session; queue.async { if captureSession.isRunning { captureSession.stopRunning() } } }
+    func stop() {
+        isReady = false
+        let captureSession = session
+        queue.async { [weak self] in
+            if captureSession.isRunning { captureSession.stopRunning() }
+            Task { @MainActor [weak self] in self?.isReady = false }
+        }
+    }
 }
 
 struct CameraPreview: UIViewRepresentable {
@@ -35,7 +48,7 @@ struct CameraPreview: UIViewRepresentable {
         surface.preview.videoGravity = .resizeAspectFill
         return surface
     }
-    func updateUIView(_ uiView: CameraSurface, context: Context) {}
+    func updateUIView(_ uiView: CameraSurface, context: Context) { uiView.setNeedsLayout() }
 }
 
 final class CameraSurface: UIView {

@@ -96,14 +96,18 @@ struct LessonDetailView: View {
 }
 
 struct ActivityTracking: ViewModifier {
+    var isActive = true
     @Environment(StudioLibrary.self) private var library
     @Environment(\.scenePhase) private var scenePhase
     @State private var started: Date?
     func body(content: Content) -> some View {
-        content.onAppear { if scenePhase == .active { started = .now } }
+        content.onAppear { if scenePhase == .active && isActive { started = .now } }
             .onDisappear { pause() }
+            .onChange(of: isActive) { _, active in
+                if active && scenePhase == .active { started = .now } else { pause() }
+            }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { started = .now } else { pause() }
+                if phase == .active && isActive { started = .now } else { pause() }
             }
     }
     private func pause() {

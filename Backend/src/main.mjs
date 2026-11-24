@@ -11,9 +11,12 @@ mkdirSync(dirname(database), { recursive: true });
 const authorize = appleAuthorizer(env);
 const generate = openAIProvider(env);
 const quota = new QuotaStore(database, { weeklyLimit: positive('AI_WEEKLY_LIMIT', 10), dailyBudget: positive('AI_DAILY_BUDGET', 100) });
+const retentionTimer = setInterval(() => quota.purgeExpired(), 3600000);
+retentionTimer.unref();
 const server = createAPI({ authorize, generate, quota, maxConcurrent: positive('AI_MAX_CONCURRENT', 2) });
 server.listen(positive('PORT', 8080), env.HOST || '127.0.0.1', () => console.log('Trace Studio API ready.'));
 for (const signal of ['SIGTERM', 'SIGINT']) process.on(signal, () => {
+  clearInterval(retentionTimer);
   server.close(() => { quota.close(); process.exit(0); });
   setTimeout(() => process.exit(1), 160000).unref();
 });

@@ -12,11 +12,17 @@ final class ImageAndAITests: XCTestCase {
         XCTAssertEqual(normalized.size.width, 100)
         XCTAssertEqual(normalized.size.height, 50)
         let transparent = try XCTUnwrap(ImageFiles.transparentOutline(input).cgImage)
-        var pixel = [UInt8](repeating: 0, count: 4)
-        let context = try XCTUnwrap(CGContext(data: &pixel, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
-        let paperPixel = try XCTUnwrap(transparent.cropping(to: CGRect(x: 100, y: 70, width: 1, height: 1)))
-        context.draw(paperPixel, in: CGRect(x: 0, y: 0, width: 1, height: 1))
-        XCTAssertLessThan(pixel[3], 5, "White paper must be transparent over the camera")
+        func alpha(x: CGFloat, y: CGFloat) throws -> UInt8 {
+            var pixel = [UInt8](repeating: 0, count: 4)
+            let cropped = try XCTUnwrap(transparent.cropping(to: CGRect(x: x * input.scale, y: y * input.scale, width: 1, height: 1)))
+            try pixel.withUnsafeMutableBytes { bytes in
+                let context = try XCTUnwrap(CGContext(data: bytes.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+                context.draw(cropped, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+            }
+            return pixel[3]
+        }
+        XCTAssertLessThan(try alpha(x: 100, y: 70), 5, "White paper must be transparent over the camera")
+        XCTAssertGreaterThan(try alpha(x: 15, y: 15), 240, "The pencil contour must stay visible")
     }
     func testSavedImageCanBeExportedAsPDF() throws {
         let input = UIGraphicsImageRenderer(size: CGSize(width: 20, height: 20)).image { context in UIColor.white.setFill(); context.fill(CGRect(x: 0, y: 0, width: 20, height: 20)) }

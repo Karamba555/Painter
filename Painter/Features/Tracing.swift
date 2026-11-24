@@ -134,7 +134,7 @@ struct TracingWorkspace: View {
             }.font(StudioTheme.font(13)).padding(.horizontal, 24).padding(.vertical, 12).background(StudioTheme.paper)
         }.navigationTitle(mode.title).navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .tabBar)
-            .modifier(ActivityTracking())
+            .modifier(ActivityTracking(isActive: projectID != nil && !showSaved && (mode == .screen || camera.isReady)))
             .task {
                 projectID = existingProjectID ?? library.startProject(drawing, isPro: purchases.isPro)
                 guard projectID != nil else { error = "This drawing requires Pro."; return }

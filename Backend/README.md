@@ -11,7 +11,7 @@ An executable Node 24 service for the iOS `Create with AI` flow. It is **not dep
 - Persists reservations, results and usage in SQLite. Retries with the same request ID and description return the cached image instead of creating another billable request.
 - Default allowance: **10 images in a rolling seven-day window**, configurable via `AI_WEEKLY_LIMIT`. This is a development default, not a finalized commercial promise.
 - Limits global generation concurrency (2), provider attempts per subscription (5/hour), request sizes and total provider attempts (100/rolling 24h by default). Failed attempts count toward the global cost cap but return the user's generation allowance.
-- Keeps replay data for 30 days; startup removes older results. Do not log authorization headers, prompts or image bodies in the reverse proxy.
+- Keeps replay data for 30 days; cleanup runs at startup, before requests and hourly. Do not log authorization headers, prompts or image bodies in the reverse proxy.
 
 ## Configure
 

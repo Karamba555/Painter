@@ -55,13 +55,14 @@ struct ARTracingWorkspace: View {
                 }.font(StudioTheme.font(13)).padding(16).background(StudioTheme.paper)
             }
         }.navigationTitle("AR Trace").navigationBarTitleDisplayMode(.inline).toolbar(.hidden, for: .tabBar)
-            .modifier(ActivityTracking())
+            .modifier(ActivityTracking(isActive: controller.isPlaced && !controller.needsRealignment && !showFinished))
             .task {
                 guard library.state.canOpen(drawing, isPro: purchases.isPro) else { error = "This drawing requires Pro."; return }
+                await controller.start()
+                guard !controller.unavailable else { return }
                 guard let source = ImageFiles.source(for: drawing) else { error = "This drawing could not be loaded."; return }
                 do { try controller.prepare(image: drawing.isOutline ? source : ImageFiles.outline(source, detailed: true)) }
                 catch { self.error = error.localizedDescription; return }
-                await controller.start()
                 if !controller.unavailable {
                     projectID = existingProjectID ?? library.startProject(drawing, isPro: purchases.isPro)
                     if let settings = library.state.projects.first(where: { $0.id == projectID })?.traceSettings, settings.mode == "ar" {
